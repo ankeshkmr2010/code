@@ -75,13 +75,13 @@
 	void create_FPtree();
 	void print_subtree(node *location,int num_tab);
 	void dfs(node *mapper,int *total_count , node *location);
-	void create_cross_pointers();
+	void create_cross_pointers(node **mapper);
 	void trav_and_add(node *location,node * map_node);
-	void process_mapper();
+	void process_mapper(node *mapper);
 	void print_rev_branch(int label);
 	record * add_2_ll(record * root , node * old_node , node * new_node);
 	record * search_record_ll(record * root , node * old_node);
-	node *copy_subtree(int label, node *root);
+	node *copy_subtree(int label, node *root , node *mapper);
 //_________________________________________________________
 
 
@@ -99,7 +99,7 @@
 		}
 		//	create 	FP tree
 		create_FPtree();
-		create_cross_pointers();
+		create_cross_pointers(&mapper);
 		
 		//___________________________DEBUG CODES	FOLLOWS
 		print_rev_branch(4);
@@ -118,7 +118,7 @@
 			printf("\n_________ FAIL\n");
 		record * l = search_record_ll(trial,n1);
 		printf("\n____  %d _____ \n",l->new_tree_node->label);
-		node *ntree = copy_subtree(4,root);
+		node *ntree = copy_subtree(4,root,mapper);
 		print_FPtree(ntree);
 		//node *otree = copy_subtree(2,ntree);
 		//print_FPtree(otree);
@@ -196,7 +196,7 @@
 //	Crosss_Linking
 //
 
-	void create_cross_pointers()
+	void create_cross_pointers(node **mapper_r)
 	{
 		// create a 2d linked list that stores the location for encountered nodes
 		//	go through every node in depth-first manner
@@ -210,7 +210,8 @@
 		//create mapper as array of nodes 
 		//each node having all of child_nodes 
 		// each child node points a node address
-		mapper = (node * )malloc(sizeof(node) * numItems);
+		node *mapper = (node * )malloc(sizeof(node) * numItems);
+		*mapper_r =  mapper;
 		for (i=0;i<numItems;i++)
 			mapper[i].label = i;
 			
@@ -218,7 +219,7 @@
 		//use dfs to map address of visited nodes in mapper
 		dfs( mapper , total_count , root);
 		//use mapper to create cross nodes
-		process_mapper();
+		process_mapper(mapper);
 		//print the total count for every item
 		for (i=0;i<numItems;i++)
 			printf(" [%d] = %d\n",i,total_count[i]);
@@ -296,7 +297,7 @@
 //	PRINT MAPPER
 //	Create Links
 //
-	void process_mapper()
+	void process_mapper(node *mapper)
 	{
 		int i = 0 , j = 0;
 		for (i=0 ; i< numItems;i++)
@@ -453,7 +454,7 @@
 //--------------------------------------------------------
 //		Print branches containing given element
 //
-	node *copy_subtree(int label, node *root)
+	node *copy_subtree(int label, node *root ,node *mapper )
 	{
 		int count = 0;
 		//node for root of new subtree

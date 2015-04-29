@@ -9,31 +9,41 @@
 //
 //_________________________________________________________________________________________________
 
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-
-
+#include <math.h>
 
 //---------------------------------------------------------
 //	STRUCTURES
 //
-
+	//nodes of fp tree
 	struct Node
 	{
 		int label;
 		int support;
 		struct Child_node *children;
+		struct Node *parent;
 		struct Node *cross;
 	};
 	typedef struct Node node;
 	
+	
+	//node for list per node for maintaining the children
 	struct Child_node
 	{
 		node *child;
 		struct Child_node *nxt;
 	};
 	typedef struct Child_node child_node;
+	
+	//nodes for maintaining a liked list for keeping track of added nodes in new tree
+	typedef struct record{
+		node * old_tree_node;
+		node * new_tree_node;
+		struct record *next,*prev;
+	} record;
 //_________________________________________________________
 
 
@@ -61,13 +71,17 @@
 	int get_transaction_matrix(char *inp_file);
 	void print_transaction_matrix();
 	node  *FP_growth_level(int label, node *location);
-	void print_FPtree();
+	void print_FPtree(node * root);
 	void create_FPtree();
 	void print_subtree(node *location,int num_tab);
 	void dfs(node *mapper,int *total_count , node *location);
 	void create_cross_pointers();
 	void trav_and_add(node *location,node * map_node);
 	void process_mapper();
+	void print_rev_branch(int label);
+	record * add_2_ll(record * root , node * old_node , node * new_node);
+	record * search_record_ll(record * root , node * old_node);
+	node *copy_subtree(int label, node *root);
 //_________________________________________________________
 
 
@@ -86,6 +100,29 @@
 		//	create 	FP tree
 		create_FPtree();
 		create_cross_pointers();
+		
+		//___________________________DEBUG CODES	FOLLOWS
+		print_rev_branch(4);
+		record *trial = NULL;
+		node *n1 = (node *)malloc(sizeof(node));
+		node *n2 = (node *)malloc(sizeof(node));
+		node *n3 = (node *)malloc(sizeof(node));
+		n1->label = 1;
+		n2->label = 2;
+		n3->label = 3;
+		
+		trial = add_2_ll(trial,n1,n2);
+		trial = add_2_ll(trial,n2,n3);
+		trial = add_2_ll(trial,n3,n1);
+		if (trial == NULL)
+			printf("\n_________ FAIL\n");
+		record * l = search_record_ll(trial,n1);
+		printf("\n____  %d _____ \n",l->new_tree_node->label);
+		node *ntree = copy_subtree(4,root);
+		print_FPtree(ntree);
+		//node *otree = copy_subtree(2,ntree);
+		//print_FPtree(otree);
+		//_______________________________________________________________
 		return 0;
 	}
 //_________________________________________________________
@@ -185,7 +222,8 @@
 		//print the total count for every item
 		for (i=0;i<numItems;i++)
 			printf(" [%d] = %d\n",i,total_count[i]);
-		
+	
+		return;
 	}
 //________________________________________________________	
 
@@ -215,8 +253,8 @@
 			total_count[location->label] += location->support;
 			trav_and_add(&mapper[location->label], location);
 		}
+		return;
 	}
-
 //_________________________________________________________
 
 
@@ -283,7 +321,6 @@
 		}
 		return ;
 	}
-
 //_________________________________________________________
 
 
@@ -314,10 +351,11 @@
 			}
 		}
 		
-		print_FPtree();
+		print_FPtree(root);
 		return;
 	}
 //_________________________________________________________
+
 
 
 //---------------------------------------------------------
@@ -344,6 +382,7 @@
 			node *new_node = (node *) malloc(sizeof(node));
 			new_node->label = label;
 			new_node->support = 1;
+			new_node->parent = root;
 			
 			//create node in children list
 			child_node *temp_c = (child_node *) malloc(sizeof(child_node));
@@ -364,6 +403,7 @@
 			// initialise travelling node pointer
 			node *traveller ;
 			
+			//if the label is same then increase count
 			if(location->label == label)
 			{
 				location->support += 1;
@@ -390,6 +430,7 @@
 			node *new_node = (node *) malloc(sizeof(node));
 			new_node->label = label;
 			new_node->support = 1;
+			new_node->parent = location;
 			
 			//create node in children list
 			child_node *temp_c = (child_node *) malloc(sizeof(child_node));
@@ -410,10 +451,141 @@
 
 
 //--------------------------------------------------------
+//		Print branches containing given element
+//
+	node *copy_subtree(int label, node *root)
+	{
+		int count = 0;
+		//node for root of new subtree
+		node *new_root = (node *) malloc(sizeof(node));
+		//ll for holding record of previously added nodes
+		record *added_nodes = NULL;
+		//starting point ffor going to nodes with given label
+		child_node * t_child = mapper[label].children;
+		
+		//go to every node containing the given element
+		while(t_child != NULL)
+		{	
+			//printf(" \t in branch %d\n",count);
+			//node to traverse branch upwards
+			node *trav = t_child->child;
+			// last travelled to node
+			node *last_node = NULL;
+			node *top_node =  NULL;
+			while (trav != root )
+			{
+				//if given node is in the added nodes list
+				record *res = search_record_ll(added_nodes,trav);
+				
+				if (res == NULL)
+				{
+					//printf("res not found\n");
+					//create a new node
+					// copy iver the trav node
+					node * new_node = (node *) malloc(sizeof(node*));
+					new_node->label = trav->label;
+					new_node->support = trav->support;
+					added_nodes = add_2_ll(added_nodes, trav , new_node);
+					//update the travelled list
+					top_node = new_node;
+					
+					if (last_node ==NULL)
+					{
+						last_node = new_node;
+					}
+					else
+					{
+					//	printf("-************|\n");
+						child_node *c_node = (child_node *) malloc(sizeof(child_node));
+						c_node->child =  last_node;
+						c_node->nxt = NULL;
+						new_node->children = c_node;
+						last_node = new_node;
+					}
+					
+				}
+				else
+				{
+					//given node jas been processed
+					//create a child node for last node
+					child_node *c_node = (child_node *) malloc(sizeof(child_node));
+					c_node->child =  last_node;
+					//no last node
+					last_node = NULL;
+					top_node = NULL;
+					//go to corresponding new tree node to visited old tree node
+					node * n_node = res->new_tree_node;
+					//add to the child ll
+					child_node * ch = n_node->children;
+					n_node->children = c_node;
+					c_node->nxt = ch;
+					break;
+				}
+				trav = trav->parent;
+			}
+			
+			if (top_node != NULL)
+			{
+				//printf("\t*********** END of branch -- top_node %d\n",top_node->label);
+				//create child node for the root
+				child_node *nc = (child_node*)malloc(sizeof(child_node));
+				nc->child = top_node;
+				nc->nxt = NULL;
+				// connect to new root
+				if (new_root->children == NULL)
+					new_root->children = nc;
+				else
+				{
+					child_node *temp = new_root->children;
+					new_root->children = nc;
+					nc->nxt = temp;
+				}
+			}
+			t_child = t_child->nxt;
+			count ++;
+		}
+		return new_root;
+	}
+//________________________________________________________
+
+
+
+//--------------------------------------------------------
+//		Print branches containing given element
+//
+
+	void print_rev_branch(int label)
+	{
+		int i = 0;
+		child_node *t_child =  mapper[label].children;
+		node * trav ;
+		
+		while (t_child != NULL)
+		{
+			printf("\n\n\t");
+			//a node in the branch with the label is reached
+			trav = t_child->child;
+			//to travrese back to root
+			//initialiase a parent pointer
+			node *par = trav->parent;
+			while(par != root)
+			{
+				printf("-- %d -- ",par->label);
+				par = par->parent;
+			}
+			t_child = t_child->nxt;
+		}
+		return;
+	}
+//________________________________________________________
+
+
+
+//--------------------------------------------------------
 //	PRINT FP - TREE level order equivalent
 //
 
-	void print_FPtree()
+	void print_FPtree(node  * root)
 	{
 		//initialise flags
 		print_flag = 0;
@@ -463,6 +635,63 @@
 		return;
 	}
 //________________________________________________________
+
+
+
+//---------------------------------------------------------
+//	Record LL addition/Creation
+//
+
+	record * add_2_ll(record * root , node * old_node , node * new_node)
+	{
+		record *new_r = (record *)malloc(sizeof(record));
+		new_r->old_tree_node = old_node;
+		new_r->new_tree_node = new_node;
+		
+		if (root == NULL)
+		{
+			root = new_r;
+			return root;
+		}
+		
+		record *temp =  root;
+		root = new_r;
+		new_r->next = temp;
+		temp->prev = new_r;
+		return root;
+	}
+//_________________________________________________________	
+
+
+
+//---------------------------------------------------------
+//	Search in Record LL
+//
+
+	record * search_record_ll(record * root , node * old_node)
+	{
+		if (old_node == NULL)
+		{
+			old_node = (node *)malloc(sizeof(node));
+			old_node->label =-2;
+		}
+		record * traverse = root;
+		//printf("\nIn search node function-- looking for %d \n",old_node->label);
+		while (traverse != NULL)
+		{
+			//printf(" %d \t",traverse->old_tree_node->label);
+			if (traverse->old_tree_node == old_node)
+			{
+				//printf("  Found  \n");
+				return traverse;
+			}
+			traverse = traverse->next;
+		}
+		printf("\n");
+		return NULL;
+	}
+//_________________________________________________________
+
 
 
 //---------------------------------------------------------

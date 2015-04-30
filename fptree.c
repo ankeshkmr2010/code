@@ -75,10 +75,10 @@
 	void create_FPtree();
 	void print_subtree(node *location,int num_tab);
 	void dfs(node *mapper,int *total_count , node *location);
-	void create_cross_pointers(node **mapper);
+	void create_cross_pointers(node **mapper, node *root);
 	void trav_and_add(node *location,node * map_node);
 	void process_mapper(node *mapper);
-	void print_rev_branch(int label);
+	void print_rev_branch(int label, node *mapper , node*root);
 	record * add_2_ll(record * root , node * old_node , node * new_node);
 	record * search_record_ll(record * root , node * old_node);
 	node *copy_subtree(int label, node *root , node *mapper);
@@ -99,30 +99,42 @@
 		}
 		//	create 	FP tree
 		create_FPtree();
-		create_cross_pointers(&mapper);
+		create_cross_pointers(&mapper,root);
 		
 		//___________________________DEBUG CODES	FOLLOWS
-		print_rev_branch(4);
-		record *trial = NULL;
-		node *n1 = (node *)malloc(sizeof(node));
-		node *n2 = (node *)malloc(sizeof(node));
-		node *n3 = (node *)malloc(sizeof(node));
-		n1->label = 1;
-		n2->label = 2;
-		n3->label = 3;
 		
-		trial = add_2_ll(trial,n1,n2);
-		trial = add_2_ll(trial,n2,n3);
-		trial = add_2_ll(trial,n3,n1);
-		if (trial == NULL)
-			printf("\n_________ FAIL\n");
-		record * l = search_record_ll(trial,n1);
-		printf("\n____  %d _____ \n",l->new_tree_node->label);
 		node *ntree = copy_subtree(4,root,mapper);
 		print_FPtree(ntree);
-		//node *otree = copy_subtree(2,ntree);
-		//print_FPtree(otree);
-		//_______________________________________________________________
+		node *mapper_2 = NULL;
+		create_cross_pointers(&mapper_2,ntree);
+/*
+		if ( mapper_2 == NULL)
+			printf("epic fail\n\n");
+		int i =0;
+		for (i=0;i<numItems;i++)
+		{
+			printf("t %d ",mapper_2[i].label);
+			if ( mapper_2[i].children ==  NULL)
+			{
+				printf("NO branches %d\n",mapper_2[i].label);
+			}
+			else
+			{
+				child_node * ed = mapper_2[i].children;
+				while(ed!= NULL)
+				{
+					printf(" parent = %d  ",ed->child->parent->label);
+					ed  = ed->nxt;
+				}
+				printf("\n");
+			}
+		}
+		printf("\n");
+*/
+		printf("\n");
+		node *otree = copy_subtree(2,ntree,mapper_2);
+		print_FPtree(otree);
+		//___________________________ ___________________________________
 		return 0;
 	}
 //_________________________________________________________
@@ -196,7 +208,7 @@
 //	Crosss_Linking
 //
 
-	void create_cross_pointers(node **mapper_r)
+	void create_cross_pointers(node **mapper_r, node *root)
 	{
 		// create a 2d linked list that stores the location for encountered nodes
 		//	go through every node in depth-first manner
@@ -213,11 +225,15 @@
 		node *mapper = (node * )malloc(sizeof(node) * numItems);
 		*mapper_r =  mapper;
 		for (i=0;i<numItems;i++)
+		{	
 			mapper[i].label = i;
+			mapper[i].children =NULL;
+		}
 			
 		//use dfs to fill total count
 		//use dfs to map address of visited nodes in mapper
 		dfs( mapper , total_count , root);
+		
 		//use mapper to create cross nodes
 		process_mapper(mapper);
 		//print the total count for every item
@@ -240,6 +256,7 @@
 		// go to every child and for each child
 		while ( t_child != NULL)
 		{
+			
 			//go to node pointed by the child
 			node *trav = t_child->child;
 			//go to its sub tree
@@ -307,6 +324,8 @@
 			//edge case if no linked list exists
 			if (temp == NULL)
 				continue;
+				
+			
 			//until the last node is reached
 			while( temp->nxt != NULL)
 			{
@@ -459,6 +478,8 @@
 		int count = 0;
 		//node for root of new subtree
 		node *new_root = (node *) malloc(sizeof(node));
+		new_root->children = NULL;
+		new_root->label = -1;
 		//ll for holding record of previously added nodes
 		record *added_nodes = NULL;
 		//starting point ffor going to nodes with given label
@@ -486,6 +507,7 @@
 					node * new_node = (node *) malloc(sizeof(node*));
 					new_node->label = trav->label;
 					new_node->support = trav->support;
+					new_node->parent = new_root;
 					added_nodes = add_2_ll(added_nodes, trav , new_node);
 					//update the travelled list
 					top_node = new_node;
@@ -501,6 +523,7 @@
 						c_node->child =  last_node;
 						c_node->nxt = NULL;
 						new_node->children = c_node;
+						last_node->parent = new_node;
 						last_node = new_node;
 					}
 					
@@ -511,6 +534,7 @@
 					//create a child node for last node
 					child_node *c_node = (child_node *) malloc(sizeof(child_node));
 					c_node->child =  last_node;
+					last_node->parent = res->new_tree_node;
 					//no last node
 					last_node = NULL;
 					top_node = NULL;
@@ -530,6 +554,7 @@
 				//printf("\t*********** END of branch -- top_node %d\n",top_node->label);
 				//create child node for the root
 				child_node *nc = (child_node*)malloc(sizeof(child_node));
+				top_node->parent = new_root;
 				nc->child = top_node;
 				nc->nxt = NULL;
 				// connect to new root
@@ -555,12 +580,12 @@
 //		Print branches containing given element
 //
 
-	void print_rev_branch(int label)
+	void print_rev_branch(int label , node * mapper ,node *root)
 	{
 		int i = 0;
 		child_node *t_child =  mapper[label].children;
 		node * trav ;
-		
+		printf("in rev branch");
 		while (t_child != NULL)
 		{
 			printf("\n\n\t");
@@ -602,7 +627,8 @@
 	{
 		child_node *t_child = location->children;
 		int i = 0;
-		
+	//	if (location->parent ==  NULL && location != root)
+	//		printf("FAIL AT %d \n",location->label);
 		while(t_child != NULL)
 		{
 			//print flag tells its the first element of the printed row

@@ -107,34 +107,10 @@
 		print_FPtree(ntree);
 		node *mapper_2 = NULL;
 		create_cross_pointers(&mapper_2,ntree);
-/*
-		if ( mapper_2 == NULL)
-			printf("epic fail\n\n");
-		int i =0;
-		for (i=0;i<numItems;i++)
-		{
-			printf("t %d ",mapper_2[i].label);
-			if ( mapper_2[i].children ==  NULL)
-			{
-				printf("NO branches %d\n",mapper_2[i].label);
-			}
-			else
-			{
-				child_node * ed = mapper_2[i].children;
-				while(ed!= NULL)
-				{
-					printf(" parent = %d  ",ed->child->parent->label);
-					ed  = ed->nxt;
-				}
-				printf("\n");
-			}
-		}
-		printf("\n");
-*/
 		printf("\n");
 		node *otree = copy_subtree(2,ntree,mapper_2);
 		print_FPtree(otree);
-		//___________________________ ___________________________________
+		//______________________________________________________________
 		return 0;
 	}
 //_________________________________________________________

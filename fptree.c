@@ -74,7 +74,7 @@
 	void print_FPtree(node * root);
 	void create_FPtree();
 	void print_subtree(node *location,int num_tab);
-	void dfs(node *mapper,int *total_count , node *location);
+	void dfs(node *mapper,int *total_count , node *location ,node * root);
 	void create_cross_pointers(node **mapper, node *root);
 	void trav_and_add(node *location,node * map_node);
 	void process_mapper(node *mapper);
@@ -104,12 +104,16 @@
 		//___________________________DEBUG CODES	FOLLOWS
 		
 		node *ntree = copy_subtree(4,root,mapper);
-		print_FPtree(ntree);
 		node *mapper_2 = NULL;
 		create_cross_pointers(&mapper_2,ntree);
+		print_FPtree(ntree);
 		printf("\n");
 		node *otree = copy_subtree(2,ntree,mapper_2);
+		node *mapper_3 = NULL;
+		create_cross_pointers(&mapper_3,otree);
 		print_FPtree(otree);
+		node *ptree = copy_subtree(0,ntree,mapper_2);
+		print_FPtree(ptree);
 		//______________________________________________________________
 		return 0;
 	}
@@ -208,14 +212,14 @@
 			
 		//use dfs to fill total count
 		//use dfs to map address of visited nodes in mapper
-		dfs( mapper , total_count , root);
+		dfs( mapper , total_count , root , root);
 		
 		//use mapper to create cross nodes
 		process_mapper(mapper);
 		//print the total count for every item
 		for (i=0;i<numItems;i++)
 			printf(" [%d] = %d\n",i,total_count[i]);
-	
+			
 		return;
 	}
 //________________________________________________________	
@@ -225,7 +229,7 @@
 //--------------------------------------------------------
 //	Depth First Search
 //
-	void dfs(node *mapper,int *total_count , node *location)
+	void dfs(node *mapper,int *total_count , node *location ,node *root)
 	{
 		child_node *t_child = location->children;
 		
@@ -236,7 +240,7 @@
 			//go to node pointed by the child
 			node *trav = t_child->child;
 			//go to its sub tree
-			dfs(mapper, total_count , trav);
+			dfs(mapper, total_count , trav , root);
 			//after traversing its subtree go to next child
 			t_child = t_child->nxt;
 		}
@@ -451,6 +455,8 @@
 //
 	node *copy_subtree(int label, node *root ,node *mapper )
 	{
+		//Print tree and root dets
+		printf ("\n\tcopying the branches containg the label %d\n",label);
 		int count = 0;
 		//node for root of new subtree
 		node *new_root = (node *) malloc(sizeof(node));
@@ -602,6 +608,7 @@
 	void print_subtree(node *location,int num_tab)
 	{
 		child_node *t_child = location->children;
+		child_node *chk = location->children;
 		int i = 0;
 	//	if (location->parent ==  NULL && location != root)
 	//		printf("FAIL AT %d \n",location->label);
@@ -609,6 +616,7 @@
 		{
 			//print flag tells its the first element of the printed row
 			// check on t_flag
+			
 			if( print_flag == 1)
 			{
 				for(i=0;i<num_tab;i++)
